@@ -1,47 +1,59 @@
-# coding=utf8
-import urllib2
-import string
-import urllib
-import re
-import random
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Name: baidusearch_spider.py
+Author: Evi1ran
+Date Created: Jul 31, 2021
+Description: 百度搜索爬虫，爬取百度搜索结果
+"""
 
-def baidu_search(keyword,pn):
-    p= {'wd': keyword}
-    res=urllib2.urlopen(("http://www.baidu.com/s?"+urllib.urlencode(p)+"&pn={0}&cl=3&rn=100").format(pn))
-    html=res.read()
-    return html
-def getList(regex,text):
+# built-in imports
+
+# third-party imports
+import re
+from urllib.parse import urlencode
+from lxml import etree
+import requests
+from requests.adapters import HTTPAdapter
+ 
+s = requests.Session()
+s.mount('http://', HTTPAdapter(max_retries=3))
+s.mount('https://', HTTPAdapter(max_retries=3))
+
+def baidu_search(keyword, pn):
+    p = {'wd': keyword}
+    res = s.get("http://www.baidu.com/s?" +
+                           urlencode(p)+("&pn={0}&cl=3&rn=10").format(pn), timeout=10)
+    return res.content
+
+
+def getList(text):
     arr = []
-    res = re.findall(regex, text)
-    if res:
-        for r in res:
-            r[1].decode('utf-8')
-            arr.append(r)
+    em = re.compile(r'<em>')
+    tree = etree.HTML(em.sub('', text))
+    try:
+        title = tree.xpath('/html/body/div/div/div/div/div/h3/a/text()')
+        href = tree.xpath('/html/body/div/div/div/div/div/h3/a/@href')
+        if len(title) == len(href):
+            for i in range(len(title)):
+                arr.append(href[i] + ' ' + title[i])
+    except Exception:
+        pass
     return arr
 
-def geturl(keyword):
-    for page in range(10):
-        pn = page*10 + 1
+
+def geturl(keyword, page):
+    for pg in range(page):
+        pn = pg * 10 + 1
         #pn=page*100+1
-        html = baidu_search(keyword,pn)
+        html = baidu_search(keyword, pn)
         #content = unicode(html, 'utf-8','ignore')
-        arrList = getList("none;\">(w+\..*)\/&nbsp;<\/a>.*data-tools='\{\"title\":\"(.*)\",\"url", html)
-        #titlearr = getList("data-tools='\{\"title\":\"(.*)\",\"url",html)
-        print len(arrList)
-        save = open('result.txt', 'a+')
-        for one in arrList:
-            new = one[1].split('"')
-            strs = one[0] + " " + new[0] + "\n"
-            save.write(strs)
-        #print len(titlearr)
-        # save = open('result.txt','a+')
-        # for url, name in zip(arrList,titlearr):
-        #     newname = name.split('"');
-        #     name = newname[0]
-        #     strs = url + " " + name + "\n"
-        #     save.write(strs)
+        arrList = getList(html.decode())
+        print("Page {0}: {1}".format(pg + 1, len(arrList)))
+        save = open('result.txt', 'a+', encoding='utf-8')
+        save.write('\n'.join(arrList))
+        save.close()
+       
 
-
-
-if __name__=='__main__':
-    geturl('XX XX 首页')
+if __name__ == '__main__':
+    geturl('北京 公司 首页', page=10)

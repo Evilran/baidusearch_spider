@@ -36,7 +36,12 @@ def getList(text):
         href = tree.xpath('/html/body/div/div/div/div/div/h3/a/@href')
         if len(title) == len(href):
             for i in range(len(title)):
-                arr.append(href[i] + ' ' + title[i])
+                try:
+                    res = s.get(href[i], timeout=10, allow_redirects=False)
+                    arr.append(res.headers.get(
+                        'location', href[i]) + ' ' + title[i])
+                except:
+                    arr.append(href[i] + ' ' + title[i])
     except Exception:
         pass
     return arr

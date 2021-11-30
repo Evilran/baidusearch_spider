@@ -3,7 +3,7 @@
 """
 Name: baidusearch_spider.py
 Author: Evi1ran
-Date Created: Jul 31, 2021
+Date Created: Nov 30, 2021
 Description: 百度搜索爬虫，爬取百度搜索结果
 """
 
@@ -20,10 +20,32 @@ s = requests.Session()
 s.mount('http://', HTTPAdapter(max_retries=3))
 s.mount('https://', HTTPAdapter(max_retries=3))
 
+
+def get_random_UA():
+    ua_list = [
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.71",
+        "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; QQDownload 732; .NET4.0C; .NET4.0E)",
+        "Mozilla/5.0 (Windows NT 5.1; U; en; rv:1.8.1) Gecko/20061208 Firefox/2.0.0 Opera 9.50",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100",
+        "Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko)",
+        "Chrome/76.0.3809.100 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/68.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:61.0) Gecko/20100101 Firefox/68.0",
+        "Mozilla/5.0 (X11; Linux i586; rv:31.0) Gecko/20100101 Firefox/68.0",
+    ]
+    return random.choice(ua_list)
+
 def baidu_search(keyword, pn):
     p = {'wd': keyword}
     res = s.get("http://www.baidu.com/s?" +
-                           urlencode(p)+("&pn={0}&cl=3&rn=10").format(pn), timeout=10)
+                urlencode(p)+("&pn={0}&cl=3&rn=10").format(pn), headers={"User-Agent": get_random_UA()}, timeout=10)
     return res.content
 
 
@@ -37,7 +59,7 @@ def getList(text):
         if len(title) == len(href):
             for i in range(len(title)):
                 try:
-                    res = s.get(href[i], timeout=10, allow_redirects=False)
+                    res = s.get(href[i], headers={"User-Agent": get_random_UA()}, timeout=10, allow_redirects=False)
                     arr.append(res.headers.get(
                         'location', href[i]) + ' ' + title[i])
                 except:
@@ -49,7 +71,7 @@ def getList(text):
 
 def geturl(keyword, page):
     for pg in range(page):
-        pn = pg * 10 + 1
+        pn = pg * 10
         #pn=page*100+1
         html = baidu_search(keyword, pn)
         #content = unicode(html, 'utf-8','ignore')

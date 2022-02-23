@@ -3,14 +3,17 @@
 """
 Name: baidusearch_spider.py
 Author: Evi1ran
-Date Created: Nov 30, 2021
+Date Created: Feb 23, 2022
 Description: 百度搜索爬虫，爬取百度搜索结果
 """
 
 # built-in imports
 
 # third-party imports
+import json
 import re
+import time
+import random
 from urllib.parse import urlencode
 from lxml import etree
 import requests
@@ -49,7 +52,7 @@ def baidu_search(keyword, pn):
     return res.content
 
 
-def getList(text):
+def getList(text, abstract=False):
     arr = []
     em = re.compile(r'<em>')
     tree = etree.HTML(em.sub('', text))
@@ -60,10 +63,19 @@ def getList(text):
             for i in range(len(title)):
                 try:
                     res = s.get(href[i], headers={"User-Agent": get_random_UA()}, timeout=10, allow_redirects=False)
-                    arr.append(res.headers.get(
-                        'location', href[i]) + ' ' + title[i])
+                    if abstract:
+                        content = etree.HTML(res.content)
+                        description = content.xpath('//meta[@itemprop="description"]/@content')
+                    else:
+                        description = ""
+                    url = res.headers.get('location', href[i])
                 except:
-                    arr.append(href[i] + ' ' + title[i])
+                    description = ""
+                    url = href[i]
+                finally:
+                    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
+                    element = {"title":title[i], 'url': url, 'description': description, 'time': now }
+                    arr.append(element)
     except Exception:
         pass
     return arr
@@ -75,10 +87,12 @@ def geturl(keyword, page):
         #pn=page*100+1
         html = baidu_search(keyword, pn)
         #content = unicode(html, 'utf-8','ignore')
-        arrList = getList(html.decode())
+        arrList = getList(html.decode(), True)
         print("Page {0}: {1}".format(pg + 1, len(arrList)))
-        save = open('result.txt', 'a+', encoding='utf-8')
-        save.write('\n'.join(arrList))
+        save = open('result.json', 'a+', encoding='utf-8')
+        for i in arrList:
+            arr = json.dumps(i, ensure_ascii=False)
+            save.write(arr + '\n')
         save.close()
        
 
